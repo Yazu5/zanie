@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Pick a Song</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* REMOVED BLUE HIGHLIGHTS & SELECTION */
+  * { 
+    box-sizing: border-box; 
+    margin: 0; padding: 0; 
+    user-select: none; 
+    -webkit-user-select: none; 
+    -webkit-tap-highlight-color: transparent; /* Fixes blue flash when clicking */
+  }
+
+  body {
+    font-family: 'Roboto Slab', serif;
+    background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh; color: white; overflow: hidden; position: relative;
+    touch-action: manipulation;
+  }
+
+  /* PARTICLES */
+  .particle {
+    position: absolute; border-radius: 50%; background: rgba(0, 255, 255, 0.2);
+    width: 8px; height: 8px; animation: floatUp linear infinite;
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+    50% { opacity: 0.8; }
+    100% { transform: translateY(-50px) scale(1); opacity: 0; }
+  }
+
+  /* FLOATING SHAPES */
+  .floating-shape {
+    position: absolute; border-radius: 50%; opacity: 0.15;
+    animation: float 20s infinite linear;
+    background: linear-gradient(45deg, #0ff, #00f);
+  }
+  @keyframes float {
+    0% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-40px) rotate(180deg); }
+    100% { transform: translateY(0) rotate(360deg); }
+  }
+
+  /* CONTAINER */
+  .container { width: 100%; max-width: 440px; padding: 20px; transition: all 0.4s ease; position: relative; z-index: 1; }
+
+  /* SONG SCREEN */
+  h1 { text-align: center; letter-spacing: 4px; margin-bottom: 30px; font-weight: 700; color: #fff; text-shadow: 0 0 10px #0ff, 0 0 20px #00f; }
+
+  .song-card {
+    background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px);
+    border-radius: 20px; padding: 16px; display: flex; align-items: center;
+    margin-bottom: 18px; cursor: pointer; transition: all 0.35s ease;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  }
+  .song-card:active { transform: scale(0.95); }
+
+  .album { width: 70px; height: 70px; border-radius: 15px; object-fit: cover; margin-right: 15px; border: 2px solid rgba(255, 255, 255, 0.2); }
+  .song-info h2 { margin: 0; font-size: 17px; color: #fff; text-shadow: 0 0 5px #0ff; }
+  .song-info p { margin: 4px 0 0; font-size: 13px; opacity: 0.8; color: #ddd; }
+
+  /* LETTER SCREEN */
+  #letterScreen { display: none; text-align: center; position: relative; }
+
+  .envelope {
+    font-size: 90px; margin-bottom: 12px; cursor: pointer;
+    transition: transform 0.4s ease; color: #fff;
+    text-shadow: 0 0 10px #0ff, 0 0 20px #00f;
+    animation: pulseEnvelope 2s infinite ease-in-out;
+  }
+
+  @keyframes pulseEnvelope {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+
+  .letter {
+    display: none; margin-top: 25px; background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(12px); padding: 25px; border-radius: 20px;
+    text-align: left; max-height: 320px; overflow-y: auto;
+    line-height: 1.8; font-size: 16px; white-space: pre-wrap;
+    opacity: 0; transform: translateY(-20px);
+    transition: transform 0.7s ease, opacity 0.7s ease;
+    color: #fdfdfd; scroll-behavior: smooth;
+  }
+  .letter.show { display: block; opacity: 1; transform: translateY(0); }
+
+  /* SCROLLBAR STYLE */
+  .letter::-webkit-scrollbar { width: 4px; }
+  .letter::-webkit-scrollbar-thumb { background: rgba(0, 255, 255, 0.3); border-radius: 10px; }
+
+  /* SCROLL INDICATOR */
+  #scrollIndicator {
+    display: none; margin-top: 15px; font-size: 13px; color: #0ff;
+    font-weight: bold; text-shadow: 0 0 10px #00f;
+    animation: bounce 1.5s infinite; opacity: 0.8;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); opacity: 0.5; }
+    50% { transform: translateY(8px); opacity: 1; }
+  }
+
+  /* BUTTONS */
+  .open-btn, #songEndUI button {
+    padding: 14px 30px; margin: 8px; border-radius: 30px; border: none;
+    font-size: 15px; cursor: pointer; background: linear-gradient(135deg, #00f, #0ff);
+    color: black; font-weight: 600; box-shadow: 0 4px 15px rgba(0, 255, 255, 0.5);
+    transition: all 0.3s ease;
+  }
+  .open-btn:active { transform: scale(0.9); }
+
+  #songEndUI { display: none; margin-top: 20px; opacity: 0; transition: all 0.6s ease; }
+</style>
+</head>
+<body>
+
+  <div id="particles"></div>
+  <div class="floating-shape" style="width:80px; height:80px; top:10%; left:15%; animation-duration:18s;"></div>
+  <div class="floating-shape" style="width:100px; height:100px; top:50%; left:30%; animation-duration:20s;"></div>
+
+  <div class="container" id="songScreen">
+    <h1>PICK A SONG</h1>
+    <div class="song-card" onclick="selectSong(0)">
+      <img src="yellow.jpg" class="album">
+      <div class="song-info">
+        <h2>YELLOW</h2>
+        <p>Coldplay</p>
+      </div>
+    </div>
+    <div class="song-card" onclick="selectSong(1)">
+      <img src="sanctuary.jpg" class="album">
+      <div class="song-info">
+        <h2>SANCTUARY</h2>
+        <p>Joji</p>
+      </div>
+    </div>
+    <div class="song-card" onclick="selectSong(2)">
+      <img src="copilot.jpg" class="album">
+      <div class="song-info">
+        <h2>CO-PILOT</h2>
+        <p>Just Hush</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="container" id="letterScreen">
+    <div class="envelope" onclick="unfoldLetter()">✉️</div>
+    <div class="letter" id="letterText"></div>
+    <div id="scrollIndicator">▼ SCROLL FOR MORE ▼</div>
+    
+    <div id="songEndUI">
+      <button onclick="replaySong()">REPLAY SONG</button>
+      <button onclick="changeSong()">CHANGE SONG</button>
+    </div>
+  </div>
+
+  <audio src="yellow.mp3"></audio>
+  <audio src="sanctuary.mp3"></audio>
+  <audio src="copilot.mp3"></audio>
+
+  <script>
+    const audios = document.querySelectorAll("audio");
+    let letterContent = "";
+    let currentSongIndex = 0;
+    let letterOpened = false;
+
+    // Load letter content
+    fetch("letter.txt").then(r => r.text()).then(t => letterContent = t);
+
+    function selectSong(index) {
+      currentSongIndex = index;
+      audios.forEach((a, i) => { a.pause(); a.currentTime = 0; if (i === index) a.play(); });
+      document.getElementById("songScreen").style.display = "none";
+      document.getElementById("letterScreen").style.display = "block";
+      
+      const letter = document.getElementById("letterText");
+      letter.classList.remove("show");
+      letter.textContent = "";
+      letterOpened = false;
+      document.getElementById("scrollIndicator").style.display = "none";
+
+      const songEndUI = document.getElementById("songEndUI");
+      songEndUI.style.display = "none";
+    }
+
+    function unfoldLetter() {
+      if (letterOpened) return;
+      letterOpened = true;
+      
+      const letter = document.getElementById("letterText");
+      const indicator = document.getElementById("scrollIndicator");
+      letter.classList.add("show");
+      
+      let i = 0;
+      letter.textContent = "";
+      
+      function typeChar() {
+        if (i < letterContent.length) {
+          letter.textContent += letterContent.charAt(i);
+          i++;
+          
+          // Force auto-scroll to follow typing
+          letter.scrollTop = letter.scrollHeight;
+
+          // Check if text is long enough to need scrolling
+          if (letter.scrollHeight > letter.clientHeight) {
+            indicator.style.display = "block";
+          }
+
+          // Slow, emotional typing speed (Randomized 70ms to 160ms)
+          setTimeout(typeChar, 70 + Math.random() * 90);
+        }
+      }
+      typeChar();
+    }
+
+    audios.forEach((audio, index) => {
+      audio.addEventListener('ended', () => {
+        if (index === currentSongIndex) {
+          const songEndUI = document.getElementById("songEndUI");
+          songEndUI.style.display = "block";
+          setTimeout(() => { 
+            songEndUI.style.opacity = 1; 
+          }, 50);
+        }
+      });
+    });
+
+    function replaySong() {
+      const audio = audios[currentSongIndex];
+      audio.currentTime = 0; audio.play();
+      
+      const letter = document.getElementById("letterText");
+      letter.classList.remove("show"); 
+      letter.textContent = "";
+      letterOpened = false;
+      
+      document.getElementById("scrollIndicator").style.display = "none";
+      document.getElementById("songEndUI").style.display = "none";
+      document.getElementById("songEndUI").style.opacity = 0;
+    }
+
+    function changeSong() {
+      audios.forEach(a => { a.pause(); a.currentTime = 0; });
+      document.getElementById("letterScreen").style.display = "none";
+      document.getElementById("songScreen").style.display = "block";
+    }
+
+    /* PARTICLES */
+    const particlesContainer = document.getElementById('particles');
+    for(let i=0; i<40; i++){
+      const p = document.createElement('div');
+      p.classList.add('particle');
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.width = p.style.height = 2 + Math.random() * 6 + 'px';
+      p.style.animationDuration = 5 + Math.random() * 10 + 's';
+      particlesContainer.appendChild(p);
+    }
+  </script>
+</body>
+</html>
